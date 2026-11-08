@@ -35,7 +35,7 @@ const DEFAULT_APP = {
   automationEnabled: true,
   theme: { primary: '#1A56DB', radius: 10, density: 'comfortable', fontSize: 14 },
   bubbleColors: {},
-  dashboardLayout: { pages: [{ name: '销售', widgets: [] }] },
+  dashboardLayout: { pages: [{ name: '销售', widgets: ['kpiLeads', 'kpiDeals', 'kpiReceivable', 'kpiReceived', 'aiBrief', 'funnel', 'country', 'sla', 'today', 'orders', 'chat'].map(id => ({ id, size: 'w-standard', hidden: false })) }] },
   sidebar: {},
   dealStages: [
     { key: 'inquiry', label: '询盘', winRate: 10 },
@@ -80,6 +80,10 @@ function load() {
   };
   if (!Array.isArray(db.appSettings.dealStages) || !db.appSettings.dealStages.length)
     db.appSettings.dealStages = JSON.parse(JSON.stringify(DEFAULT_APP.dealStages));
+  // 修掉已落盘的空桌面布局：没有任何可见小部件时恢复默认 11 个小部件（删的是演示数据，不是功能）
+  const _dl = db.appSettings.dashboardLayout;
+  const _hasWidget = _dl && Array.isArray(_dl.pages) && _dl.pages.some(p => Array.isArray(p.widgets) && p.widgets.some(w => !w.hidden));
+  if (!_hasWidget) db.appSettings.dashboardLayout = JSON.parse(JSON.stringify(DEFAULT_APP.dashboardLayout));
   db.siteIntegration = { ...DEFAULT_SITE, ...(db.siteIntegration || {}) };
   return db;
 }

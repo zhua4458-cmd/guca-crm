@@ -1,1 +1,166 @@
-{"activities":[],"aiSettings":{"baseUrl":"","hasKey":false,"model":"","provider":"demo"},"appSettings":{"automationEnabled":true,"bubbleColors":{},"dashboardLayout":{"pages":[{"name":"销售","widgets":[]}]},"dealStages":[{"key":"inquiry","label":"询盘","winRate":10},{"key":"confirm","label":"需求确认","winRate":20},{"key":"quote","label":"报价","winRate":40},{"key":"negotiate","label":"谈判","winRate":60},{"key":"sample","label":"样品","winRate":80},{"key":"won","label":"赢单","winRate":100},{"key":"lost","label":"输单","winRate":0}],"lang":"zh","roles":{"current":"admin","hideAmount":false,"myName":""},"sidebar":{},"theme":{"density":"comfortable","fontSize":14,"primary":"#1A56DB","radius":10}},"auditLogs":[],"campaignRecipients":[],"campaigns":[],"cases":[],"contacts":[],"customFields":[],"customObjects":[],"customRecords":[],"customers":[],"deals":[],"docs":[],"documents":[],"drafts":[],"emailTemplates":[],"inquiryLogs":[],"inventory":[],"invoices":[],"leads":[],"messages":[],"miningRuns":[],"orders":[],"payments":[],"products":[],"prospects":[],"quickReplies":[],"quotes":[],"savedViews":[],"scheduledPosts":[],"segments":[],"shipments":[],"siteIntegration":{"apiKey":"","enabled":true},"stockMoves":[],"tasks":[],"whatsapp":[],"workflowLogs":[],"workflows":[]}
+{
+  "activities": [],
+  "aiSettings": {
+    "baseUrl": "",
+    "hasKey": false,
+    "model": "",
+    "provider": "demo"
+  },
+  "appSettings": {
+    "automationEnabled": true,
+    "bubbleColors": {},
+    "dashboardLayout": {
+      "pages": [
+        {
+          "name": "销售",
+          "widgets": [
+            {
+              "id": "kpiLeads",
+              "size": "w-standard",
+              "hidden": false
+            },
+            {
+              "id": "kpiDeals",
+              "size": "w-standard",
+              "hidden": false
+            },
+            {
+              "id": "kpiReceivable",
+              "size": "w-standard",
+              "hidden": false
+            },
+            {
+              "id": "kpiReceived",
+              "size": "w-standard",
+              "hidden": false
+            },
+            {
+              "id": "aiBrief",
+              "size": "w-standard",
+              "hidden": false
+            },
+            {
+              "id": "funnel",
+              "size": "w-standard",
+              "hidden": false
+            },
+            {
+              "id": "country",
+              "size": "w-standard",
+              "hidden": false
+            },
+            {
+              "id": "sla",
+              "size": "w-standard",
+              "hidden": false
+            },
+            {
+              "id": "today",
+              "size": "w-standard",
+              "hidden": false
+            },
+            {
+              "id": "orders",
+              "size": "w-standard",
+              "hidden": false
+            },
+            {
+              "id": "chat",
+              "size": "w-standard",
+              "hidden": false
+            }
+          ]
+        }
+      ]
+    },
+    "dealStages": [
+      {
+        "key": "inquiry",
+        "label": "询盘",
+        "winRate": 10
+      },
+      {
+        "key": "confirm",
+        "label": "需求确认",
+        "winRate": 20
+      },
+      {
+        "key": "quote",
+        "label": "报价",
+        "winRate": 40
+      },
+      {
+        "key": "negotiate",
+        "label": "谈判",
+        "winRate": 60
+      },
+      {
+        "key": "sample",
+        "label": "样品",
+        "winRate": 80
+      },
+      {
+        "key": "won",
+        "label": "赢单",
+        "winRate": 100
+      },
+      {
+        "key": "lost",
+        "label": "输单",
+        "winRate": 0
+      }
+    ],
+    "lang": "zh",
+    "roles": {
+      "current": "admin",
+      "hideAmount": false,
+      "myName": ""
+    },
+    "sidebar": {},
+    "theme": {
+      "density": "comfortable",
+      "fontSize": 14,
+      "primary": "#1A56DB",
+      "radius": 10
+    }
+  },
+  "auditLogs": [],
+  "campaignRecipients": [],
+  "campaigns": [],
+  "cases": [],
+  "contacts": [],
+  "customFields": [],
+  "customObjects": [],
+  "customRecords": [],
+  "customers": [],
+  "deals": [],
+  "docs": [],
+  "documents": [],
+  "drafts": [],
+  "emailTemplates": [],
+  "inquiryLogs": [],
+  "inventory": [],
+  "invoices": [],
+  "leads": [],
+  "messages": [],
+  "miningRuns": [],
+  "orders": [],
+  "payments": [],
+  "products": [],
+  "prospects": [],
+  "quickReplies": [],
+  "quotes": [],
+  "savedViews": [],
+  "scheduledPosts": [],
+  "segments": [],
+  "shipments": [],
+  "siteIntegration": {
+    "apiKey": "",
+    "enabled": true
+  },
+  "stockMoves": [],
+  "tasks": [],
+  "whatsapp": [],
+  "workflowLogs": [],
+  "workflows": []
+}

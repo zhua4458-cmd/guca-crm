@@ -51,6 +51,7 @@ window.I18N = {
     emptyOrders: '暂无订单', emptyMessages: '暂无消息', emptyThreads: '暂无会话', emptyInventory: '暂无库存记录',
     emptyCases: '暂无工单', emptyDocs: '暂无文档', emptyCampaigns: '暂无营销活动', emptySegments: '暂无分组',
     emptyProspects: '暂未挖掘到客户', emptyLog: '暂无记录', emptyCalendar: '本月暂无事项',
+    emptySla: '暂无逾期线索', aiBriefEmpty: '今日暂无简报：还没有线索、商机或待办，先新增一条线索开始吧。',
     overdue: '逾期', done: '完成', markDone: '标记完成', newTask: '新建跟进', followUp: '写跟进',
     addProduct: '新增产品', addQuote: '新建报价', addOrder: '新建订单', addCustomer: '新增客户',
     quoteLines: '报价明细', total: '合计', version: '版本', sku: 'SKU', price: '价格', stock: '库存',
@@ -292,6 +293,7 @@ window.I18N = {
     emptyOrders: 'No orders yet', emptyMessages: 'No messages', emptyThreads: 'No conversations', emptyInventory: 'No inventory records',
     emptyCases: 'No cases', emptyDocs: 'No documents', emptyCampaigns: 'No campaigns', emptySegments: 'No segments',
     emptyProspects: 'No prospects mined yet', emptyLog: 'No records', emptyCalendar: 'Nothing this month',
+    emptySla: 'No overdue leads', aiBriefEmpty: 'No brief yet: no leads, deals or tasks — add a lead to get started.',
     overdue: 'Overdue', done: 'Done', markDone: 'Mark Done', newTask: 'New Follow-up', followUp: 'Add Follow-up',
     addProduct: 'New Product', addQuote: 'New Quote', addOrder: 'New Order', addCustomer: 'New Customer',
     quoteLines: 'Line Items', total: 'Total', version: 'Version', sku: 'SKU', price: 'Price', stock: 'Stock',
@@ -726,6 +728,12 @@ function defaultDashboardLayout() {
 function dashLayout() {
   const l = state.settings.dashboardLayout || defaultDashboardLayout();
   if (!Array.isArray(l.pages) || !l.pages.length) return defaultDashboardLayout();
+  // 布局里没有任何可见小部件时恢复默认（删的是数据，不是功能；空库也要显示全部小部件）
+  if (!l.pages.some(p => Array.isArray(p.widgets) && p.widgets.some(w => !w.hidden))) {
+    state.settings.dashboardLayout = defaultDashboardLayout();
+    saveSettings();
+    return state.settings.dashboardLayout;
+  }
   return l;
 }
 
@@ -820,7 +828,12 @@ function bindRouter() {
   const sb = $('sidebar');
   if (sb) sb.addEventListener('click', e => {
     const nav = e.target.closest('.nav-item[data-page]');
-    if (nav) { showPage(nav.getAttribute('data-page')); return; }
+    if (nav) {
+      showPage(nav.getAttribute('data-page'));
+      // 手机上点完导航就收起抽屉，把正文露出来
+      if (window.innerWidth <= 900) { sb.classList.remove('open'); const ov = $('sidebarOverlay'); if (ov) ov.classList.remove('show'); }
+      return;
+    }
     const grp = e.target.closest('[data-group]');
     if (grp && e.target.closest('.group-toggle')) { grp.classList.toggle('collapsed'); }
   });
@@ -862,6 +875,8 @@ function renderDashboard(dash) {
   const page = layout.pages[Math.min(state.dashPage, layout.pages.length - 1)] || layout.pages[0];
   state.dashPage = Math.min(state.dashPage, layout.pages.length - 1);
   const visible = page.widgets.filter(w => !w.hidden);
+  // 兜底：万一可见小部件还是空的，用默认 11 个小部件渲染，绝不用整页“暂无数据”代替工作台
+  const toRender = visible.length ? visible : defaultDashboardLayout().pages[0].widgets;
   const stats = dash.stats || dash.kpi || dash || {};
   const leads = coll('leads'), deals = coll('deals'), tasks = coll('tasks'), orders = coll('orders'), messages = coll('messages');
   const receivable = coll('invoices').filter(i => i.status !== 'paid').reduce((s, i) => s + (+i.amount || 0), 0);
@@ -885,21 +900,21 @@ function renderDashboard(dash) {
     kpiDeals: `<div class="kpi-num">${kpi.kpiDeals}</div>`,
     kpiReceivable: `<div class="kpi-num">${fmtMoney(kpi.kpiReceivable)}</div>`,
     kpiReceived: `<div class="kpi-num">${fmtMoney(kpi.kpiReceived)}</div>`,
-    aiBrief: brief ? `<p>${esc(brief)}</p>` : emptyState('emptyDefault'),
+    aiBrief: brief ? `<p>${esc(brief)}</p>` : `<div class="empty">${esc(t('aiBriefEmpty'))}</div>`,
     funnel: Object.keys(funnel).length ? Object.entries(funnel).map(([k, v]) => `<div class="bar-row"><span>${esc(t('stage' + k.charAt(0).toUpperCase() + k.slice(1)) === 'stage' + k.charAt(0).toUpperCase() + k.slice(1) ? k : t('stage' + k.charAt(0).toUpperCase() + k.slice(1)))}</span><div class="bar"><i style="width:${Math.round(v / maxF * 100)}%"></i></div><b>${v}</b></div>`).join('') : emptyState('emptyDeals'),
     country: Object.keys(byCountry).length ? Object.entries(byCountry).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="bar-row"><span>${esc(k)}</span><div class="bar"><i style="width:${Math.round(v / maxC * 100)}%"></i></div><b>${v}</b></div>`).join('') : emptyState('emptyLeads'),
-    sla: sla.length ? sla.map(l => `<div class="sla-row over">${esc(l.name || '')} · ${esc(l.company || '')} — ${esc(l.nextFollow || '')}</div>`).join('') : `<div>${esc(t('emptyDefault'))}</div>`,
+    sla: sla.length ? sla.map(l => `<div class="sla-row over">${esc(l.name || '')} · ${esc(l.company || '')} — ${esc(l.nextFollow || '')}</div>`).join('') : `<div class="empty">${esc(t('emptySla'))}</div>`,
     today: todayTasks.length ? todayTasks.map(x => `<div>☐ ${esc(x.title || '')} · ${esc(x.due || '')}</div>`).join('') : emptyState('emptyTasks'),
     orders: orders.length ? orders.slice(0, 5).map(o => `<div>${esc(o.number || o.id || '')} · ${esc(o.customer || o.company || '')} · ${fmtMoney(o.amount || o.total)}</div>`).join('') : emptyState('emptyOrders'),
     chat: unread.length ? unread.slice(0, 5).map(m => `<div onclick="openChatThread('${esc(m.customerId || '')}')">💬 ${esc((m.originalBody || m.body || '').slice(0, 60))}</div>`).join('') : emptyState('emptyMessages')
   };
-  grid.innerHTML = visible.map(w => {
+  grid.innerHTML = toRender.map(w => {
     const def = WIDGET_DEFS.find(d => d.id === w.id) || { id: w.id, titleKey: w.id };
     const bodyId = { kpiLeads: 'wKpiLeads', kpiDeals: 'wKpiDeals', kpiReceivable: 'wKpiReceivable', kpiReceived: 'wKpiReceived', aiBrief: 'wAiBrief', funnel: 'wFunnel', country: 'wCountry', sla: 'wSla', today: 'wToday', orders: 'wOrders', chat: 'wChat' }[w.id] || '';
     return `<div class="widget ${esc(w.size || 'w-standard')}" data-widget="${esc(w.id)}" draggable="true">
       <div class="widget-head"><span>${esc(t(def.titleKey))}</span><button class="ghost widget-size" data-widget-size="${esc(w.id)}" title="size">⤢</button></div>
       <div class="widget-body" ${bodyId ? `id="${bodyId}"` : ''}>${bodies[w.id] || ''}</div></div>`;
-  }).join('') || emptyState('emptyDefault');
+  }).join('');
   grid.querySelectorAll('.widget').forEach(wEl => {
     wEl.addEventListener('dragstart', e => { state.dragWidgetId = wEl.dataset.widget; e.dataTransfer.setData('text/plain', state.dragWidgetId); });
     wEl.addEventListener('dragover', e => e.preventDefault());
@@ -1326,19 +1341,35 @@ async function loadOrders() { await Promise.all([loadColl('orders'), loadColl('s
 function renderOrders() {
   const board = $('orderBoard'); if (!board) return;
   const orders = coll('orders');
+  const stages = ['production', 'qc', 'packing', 'shipped', 'paid', 'done'];
+  const cardHtml = o => {
+    const pct = o.progress != null ? o.progress : Math.round(((o.stocking || 0) + (o.qc || 0) + (o.inspection || 0) + (o.packing || 0)) / 4);
+    return `<div class="order-card" data-order="${esc(o.id)}">
+      <b>${esc(o.number || o.id || '')}</b> · ${esc(o.customer || o.company || '')} · ${fmtMoney(o.amount || o.total)}
+      <div class="progress"><i style="width:${pct}%"></i></div>
+      <div class="order-steps">${esc(t('stocking'))} ${o.stocking || 0}% · ${esc(t('qc'))} ${o.qc || 0}% · ${esc(t('inspection'))} ${o.inspection || 0}% · ${esc(t('packing'))} ${o.packing || 0}%</div>
+      <div class="card-actions"><button data-order-doc="${esc(o.id)}" data-doc="pi">${esc(t('pi'))}</button>
+      <button data-order-doc="${esc(o.id)}" data-doc="ci">${esc(t('ci'))}</button>
+      <button data-order-doc="${esc(o.id)}" data-doc="packing">${esc(t('packingList'))}</button>
+      <button data-order-edit="${esc(o.id)}">${esc(t('edit'))}</button></div></div>`;
+  };
+  // 六个状态分列是静态 HTML，始终保留；空列只在列内显示“暂无订单”，绝不整页替换
+  stages.forEach(st => {
+    const col = $('orderCol' + st.charAt(0).toUpperCase() + st.slice(1));
+    if (!col) return;
+    const list = orders.filter(o => (o.status || 'production') === st);
+    col.innerHTML = list.length ? list.map(cardHtml).join('') : `<div class="empty">${esc(t('emptyOrders'))}</div>`;
+    const bubble = document.querySelector(`[data-bubble="orders-${st}"]`);
+    if (bubble) bubble.textContent = list.length;
+  });
   const warnings = coll('inventory').filter(i => (i.stock || 0) < (i.safeStock || 0));
-  board.innerHTML = (warnings.length ? `<div class="warn">${esc(t('orderWarnings'))}: ${warnings.map(w => esc(w.name || w.sku || '')).join(', ')}</div>` : '') +
-    (orders.length ? orders.map(o => {
-      const pct = o.progress != null ? o.progress : Math.round(((o.stocking || 0) + (o.qc || 0) + (o.inspection || 0) + (o.packing || 0)) / 4);
-      return `<div class="order-card" data-order="${esc(o.id)}">
-        <b>${esc(o.number || o.id || '')}</b> · ${esc(o.customer || o.company || '')} · ${fmtMoney(o.amount || o.total)}
-        <div class="progress"><i style="width:${pct}%"></i></div>
-        <div class="order-steps">${esc(t('stocking'))} ${o.stocking || 0}% · ${esc(t('qc'))} ${o.qc || 0}% · ${esc(t('inspection'))} ${o.inspection || 0}% · ${esc(t('packing'))} ${o.packing || 0}%</div>
-        <div class="card-actions"><button data-order-doc="${esc(o.id)}" data-doc="pi">${esc(t('pi'))}</button>
-        <button data-order-doc="${esc(o.id)}" data-doc="ci">${esc(t('ci'))}</button>
-        <button data-order-doc="${esc(o.id)}" data-doc="packing">${esc(t('packingList'))}</button>
-        <button data-order-edit="${esc(o.id)}">${esc(t('edit'))}</button></div></div>`;
-    }).join('') : emptyState('emptyOrders'));
+  let warn = board.querySelector('.order-warn');
+  if (warnings.length) {
+    if (!warn) { warn = document.createElement('div'); warn.className = 'warn order-warn'; board.prepend(warn); }
+    warn.textContent = t('orderWarnings') + ': ' + warnings.map(w => w.name || w.sku || '').join(', ');
+  } else if (warn) warn.remove();
+  // 空列里已各显示“暂无订单”，静态的整页空状态不再使用
+  const oe = $('ordersEmpty'); if (oe) oe.hidden = true;
   board.querySelectorAll('[data-order-doc]').forEach(b => b.addEventListener('click', () => showOrderDoc(b.getAttribute('data-order-doc'), b.getAttribute('data-doc'))));
   board.querySelectorAll('[data-order-edit]').forEach(b => b.addEventListener('click', () => openOrderForm(b.getAttribute('data-order-edit'))));
 }
@@ -2164,7 +2195,19 @@ function bindGlobal() {
     state.settings.theme = names[(i + 1) % names.length]; applyTheme(); await saveSettings(); renderSettingsPage();
   });
   on('btnEditDesktop', 'click', () => { const d = $('widgetDrawer'); if (d) d.classList.toggle('open'); });
-  on('btnSidebar', 'click', () => { const s = $('sidebar'); if (s) s.classList.toggle('collapsed'); });
+  // 汉堡按钮：手机（≤900px）开关抽屉式侧栏，桌面收起为图标栏；以前切的 collapsed 类根本没有对应 CSS，点了没反应
+  on('btnSidebar', 'click', () => {
+    const s = $('sidebar'); if (!s) return;
+    if (window.innerWidth <= 900) {
+      const open = !s.classList.contains('open');
+      s.classList.toggle('open', open);
+      const ov = $('sidebarOverlay'); if (ov) ov.classList.toggle('show', open);
+    } else s.classList.toggle('collapsed');
+  });
+  on('sidebarOverlay', 'click', () => {
+    const s = $('sidebar'); if (s) s.classList.remove('open');
+    const ov = $('sidebarOverlay'); if (ov) ov.classList.remove('show');
+  });
   on('modalClose', 'click', closeModal);
   const modal = $('modal');
   if (modal) modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
