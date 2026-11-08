@@ -1,0 +1,13 @@
+[Unit]
+Description=Guca CRM
+After=network.target
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/guca-crm
+Environment=PORT=8080
+ExecStart=/usr/bin/node /opt/guca-crm/server.js
+Restart=always
+RestartSec=5
+[Install]
+WantedBy=multi-user.target

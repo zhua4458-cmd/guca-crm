@@ -1,0 +1,20 @@
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f4f6f8;color:#222}
+header{background:#0f2a43;color:#fff;padding:14px 20px;display:flex;gap:16px;align-items:center}
+header h1{font-size:20px;margin:0}header span{opacity:.75;font-size:13px}
+nav{display:flex;gap:6px;background:#fff;padding:8px 12px;position:sticky;top:0;box-shadow:0 1px 4px rgba(0,0,0,.08);flex-wrap:wrap}
+nav button{border:1px solid #ddd;background:#fff;padding:7px 12px;border-radius:8px;cursor:pointer}
+nav button.on{background:#0f2a43;color:#fff;border-color:#0f2a43}
+main{padding:16px;max-width:1200px;margin:0 auto}
+section{display:none}section.on{display:block}
+.card{background:#fff;border-radius:10px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat b{font-size:26px;display:block}.stat span{color:#666;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{border-bottom:1px solid #eee;padding:8px 6px;text-align:left}
+input,select,textarea{padding:7px 9px;border:1px solid #ccc;border-radius:6px;margin:3px 4px 3px 0;font-size:14px}
+button{padding:7px 12px;border-radius:6px;border:1px solid #0f2a43;background:#0f2a43;color:#fff;cursor:pointer}
+button.ghost{background:#fff;color:#0f2a43}.tag{background:#e8f0fe;color:#174ea6;padding:2px 8px;border-radius:10px;font-size:12px}
+.over{color:#c5221f;font-weight:700}.kanban{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;overflow-x:auto}
+.col{background:#eef2f5;border-radius:10px;padding:10px;min-height:260px}.col h3{margin:0 0 8px;font-size:14px}
+.deal{background:#fff;border-radius:8px;padding:10px;margin-bottom:8px;cursor:grab;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.msg{padding:8px 10px;border-radius:8px;margin:6px 0;max-width:80%}.msg.me{background:#d9f7c4;margin-left:auto}.msg.them{background:#fff;border:1px solid #ddd}
+.flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
