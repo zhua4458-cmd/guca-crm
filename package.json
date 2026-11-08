@@ -1,7 +1,7 @@
 {
   "name": "guca-crm",
-  "version": "1.0.0",
-  "description": "Guca CRM - foreign-trade CRM integrating Frappe CRM, GoodJob and EspoCRM advantages. Zero dependencies, Node built-ins only.",
+  "version": "2.0.0",
+  "description": "Guca CRM v2.0.0 (full version) — foreign-trade CRM integrating Frappe CRM, GoodJob and EspoCRM advantages: leads, deals, customers, chat with demo translation, prospecting, site inquiries, workflows, finance and calendar. Zero dependencies, Node built-ins only.",
   "main": "server.js",
   "scripts": { "start": "node server.js", "check": "node --check server.js" },
   "engines": { "node": ">=18" },

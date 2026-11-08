@@ -1,7 +1,7 @@
 #!/bin/bash
 # Guca CRM one-command install for Huawei Cloud Flexus L, Ubuntu 24.04, 2C/2G
 # Run as root on the server, from the directory containing this package:
-#   tar xzf guca-crm-1.0.0.tar.gz && cd guca-crm-1.0.0 && sudo bash deploy/install-flexus.sh
+#   tar xzf guca-crm-2.0.0.tar.gz && cd guca-crm-2.0.0 && sudo bash deploy/install-flexus.sh
 set -e
 if [ "$(id -u)" != "0" ]; then echo "please run as root"; exit 1; fi
 command -v node >/dev/null || { echo "installing nodejs..."; apt-get update -y && apt-get install -y nodejs; }

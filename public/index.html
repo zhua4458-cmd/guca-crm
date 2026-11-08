@@ -1,18 +1,1137 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Guca CRM</title><link rel="stylesheet" href="/public/style.css"></head><body>
-<header><h1>Guca CRM</h1><span>Frappe 式商机 + GoodJob 式外贸 + Espo 式轻量自定义</span><span id="ver"></span></header>
-<nav id="nav"></nav><main>
-<section id="s-dash" class="on"><div class="grid" id="stats"></div><div class="card"><h3>今日待办</h3><div id="dashTasks"></div></div><div class="card"><h3>销售漏斗</h3><div id="funnel"></div></div></section>
-<section id="s-leads"><div class="card"><h3>线索 <span class="tag">Frappe：保存视图 + 一页详情</span></h3>
-<div class="flex"><input id="q" placeholder="搜公司/姓名/国家/产品"><select id="fStatus"><option value="">全部状态</option><option>新线索</option><option>已联系</option><option>已报价</option></select><select id="viewSel"><option value="">全部视图</option><option value="A">A 级客户</option><option value="overdue">逾期未跟进</option></select><button onclick="showLeadForm()">+ 新增线索</button><button class="ghost" onclick="exportCsv('leads')">导出 CSV</button></div>
-<div id="leadForm"></div><table><thead><tr><th>姓名</th><th>公司</th><th>国家</th><th>产品</th><th>状态</th><th>金额</th><th>负责人</th><th>下次跟进</th><th></th></tr></thead><tbody id="leadRows"></tbody></table>
-<div class="card"><h4>CSV 导入（表头：name,company,country,product,status,value,owner,email,phone）</h4><textarea id="csvIn" rows="3" style="width:100%" placeholder="name,company,country,product,status,value,owner,email,phone&#10;Test,Test Co,美国,LED 灯具,新线索,5000,小王,test@test.com,+1 000"></textarea><button onclick="importCsv()">导入</button> <span id="impMsg"></span></div>
-</div></section>
-<section id="s-deals"><div class="card"><h3>商机 Kanban <span class="tag">Frappe：拖拽改阶段</span></h3><div class="kanban" id="kanban"></div></div></section>
-<section id="s-customers"><div class="card"><h3>客户 / 联系人</h3><div id="custRows"></div></div></section>
-<section id="s-tasks"><div class="card"><h3>跟进提醒 <span class="tag">GoodJob：三类硬提醒</span></h3><div id="taskRows"></div><div class="flex"><input id="tTitle" placeholder="跟进任务"><input id="tDue" type="date" value="2026-11-09"><button onclick="addTask()">+ 加提醒</button></div></div><div class="card"><h3>跟进记录</h3><div id="actRows"></div><div class="flex"><select id="aLead"></select><select id="aType"><option>电话</option><option>邮件</option><option>WhatsApp</option><option>企微</option></select><input id="aText" placeholder="跟进内容" style="flex:1"><button onclick="addAct()">+ 记录</button></div></div></section>
-<section id="s-docs"><div class="card"><h3>资料库 <span class="tag">GoodJob：版本 + 审核</span></h3><div id="docRows"></div><div class="flex"><input id="dTitle" placeholder="资料标题"><select id="dCat"><option>认证</option><option>报价</option><option>话术</option><option>上架</option></select><button onclick="addDoc()">+ 加资料</button></div></div></section>
-<section id="s-wa"><div class="card"><h3>WhatsApp <span class="tag">GoodJob + Frappe：消息时间线 + AI 翻译</span></h3><div class="flex"><select id="waLead"></select><button onclick="loadWa()">打开对话</button></div><div id="waBox"></div><div class="flex"><input id="waText" placeholder="输入消息（中文可点 AI 翻译）" style="flex:1"><button onclick="translateWa()">AI 翻译</button><button onclick="sendWa()">发送（模拟）</button></div><div id="waTrans"></div><p style="color:#888;font-size:13px">注：当前为模拟发送，未接真实 WhatsApp Cloud API，需配置 token + phone_number_id；翻译为内置词典演示，未命中时提示接 DeepL/Google Translate。</p></div></section>
-<section id="s-reports"><div class="card"><h3>报表</h3><div id="repRows"></div></div></section>
-<section id="s-fields"><div class="card"><h3>自定义字段 <span class="tag">Espo：无代码加字段</span></h3><div id="fieldRows"></div><div class="flex"><input id="fLabel" placeholder="字段名，如 付款方式"><select id="fType"><option>text</option><option>select</option></select><input id="fOpts" placeholder="下拉选项，逗号分隔"><button onclick="addField()">+ 加字段到线索</button></div><p style="color:#888;font-size:13px">加完后刷新，新增线索表单里会出现这个字段，数据存在线索的 custom 对象里。</p></div></section>
-</main><script src="/public/app.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guca CRM</title>
+<link rel="stylesheet" href="/public/style.css">
+</head>
+<body>
+<div class="app">
+  <!-- ============ Sidebar ============ -->
+  <aside id="sidebar" class="sidebar" aria-label="Sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-mark">G</span>
+      <span class="brand-name">Guca CRM</span>
+      <span class="brand-ver" id="appVersion">v2.0.0</span>
+    </div>
+    <div class="favorites" id="favorites">
+      <div class="favorites-title"><span data-i18n="sidebar.favorites">收藏</span><span class="favorites-count" id="favoritesCount">0</span></div>
+      <div class="favorites-list" id="favoritesList">
+        <div class="empty empty-small" data-i18n="empty.favorites">暂无收藏，可将常用页面固定到这里</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav" id="sidebarNav">
+      <div class="nav-group open" data-group="sales">
+        <button class="nav-group-toggle" type="button" data-group-toggle="sales"><span class="nav-group-label" data-i18n="group.sales">销售</span><span class="nav-group-caret">▾</span></button>
+        <div class="nav-group-items">
+          <button class="nav-item active" type="button" data-page="dashboard"><span class="nav-icon">🏠</span><span class="nav-label" data-i18n="nav.dashboard">工作台</span></button>
+          <button class="nav-item" type="button" data-page="leads"><span class="nav-icon">🎯</span><span class="nav-label" data-i18n="nav.leads">线索</span></button>
+          <button class="nav-item" type="button" data-page="deals"><span class="nav-icon">💼</span><span class="nav-label" data-i18n="nav.deals">商机</span></button>
+          <button class="nav-item" type="button" data-page="customers"><span class="nav-icon">👥</span><span class="nav-label" data-i18n="nav.customers">客户</span></button>
+          <button class="nav-item" type="button" data-page="activities"><span class="nav-icon">📋</span><span class="nav-label" data-i18n="nav.activities">跟进记录</span></button>
+        </div>
+      </div>
+      <div class="nav-group open" data-group="orders">
+        <button class="nav-group-toggle" type="button" data-group-toggle="orders"><span class="nav-group-label" data-i18n="group.orders">订单</span><span class="nav-group-caret">▾</span></button>
+        <div class="nav-group-items">
+          <button class="nav-item" type="button" data-page="quotes"><span class="nav-icon">📄</span><span class="nav-label" data-i18n="nav.quotes">报价单</span></button>
+          <button class="nav-item" type="button" data-page="orders"><span class="nav-icon">📦</span><span class="nav-label" data-i18n="nav.orders">订单</span></button>
+          <button class="nav-item" type="button" data-page="shipments"><span class="nav-icon">🚚</span><span class="nav-label" data-i18n="nav.shipments">发货物流</span></button>
+          <button class="nav-item" type="button" data-page="invoices"><span class="nav-icon">🧾</span><span class="nav-label" data-i18n="nav.invoices">发票收款</span></button>
+        </div>
+      </div>
+      <div class="nav-group open" data-group="marketing">
+        <button class="nav-group-toggle" type="button" data-group-toggle="marketing"><span class="nav-group-label" data-i18n="group.marketing">营销</span><span class="nav-group-caret">▾</span></button>
+        <div class="nav-group-items">
+          <button class="nav-item" type="button" data-page="prospects"><span class="nav-icon">🤖</span><span class="nav-label" data-i18n="nav.prospects">AI获客</span></button>
+          <button class="nav-item" type="button" data-page="marketing"><span class="nav-icon">📣</span><span class="nav-label" data-i18n="nav.marketing">营销活动</span></button>
+          <button class="nav-item" type="button" data-page="segments"><span class="nav-icon">✉️</span><span class="nav-label" data-i18n="nav.segments">邮件分群</span></button>
+          <button class="nav-item" type="button" data-page="calendar"><span class="nav-icon">📅</span><span class="nav-label" data-i18n="nav.calendar">日历</span></button>
+        </div>
+      </div>
+      <div class="nav-group open" data-group="service">
+        <button class="nav-group-toggle" type="button" data-group-toggle="service"><span class="nav-group-label" data-i18n="group.service">客服</span><span class="nav-group-caret">▾</span></button>
+        <div class="nav-group-items">
+          <button class="nav-item" type="button" data-page="inbox"><span class="nav-icon">📥</span><span class="nav-label" data-i18n="nav.inbox">全渠道收件箱</span></button>
+          <button class="nav-item" type="button" data-page="chat"><span class="nav-icon">💬</span><span class="nav-label" data-i18n="nav.chat">聊天</span></button>
+          <button class="nav-item" type="button" data-page="cases"><span class="nav-icon">🛠️</span><span class="nav-label" data-i18n="nav.cases">售后工单</span></button>
+          <button class="nav-item" type="button" data-page="knowledge"><span class="nav-icon">📚</span><span class="nav-label" data-i18n="nav.knowledge">资料库</span></button>
+        </div>
+      </div>
+      <div class="nav-group open" data-group="data">
+        <button class="nav-group-toggle" type="button" data-group-toggle="data"><span class="nav-group-label" data-i18n="group.data">数据</span><span class="nav-group-caret">▾</span></button>
+        <div class="nav-group-items">
+          <button class="nav-item" type="button" data-page="reports"><span class="nav-icon">📊</span><span class="nav-label" data-i18n="nav.reports">报表</span></button>
+          <button class="nav-item" type="button" data-page="finance"><span class="nav-icon">💰</span><span class="nav-label" data-i18n="nav.finance">财务看板</span></button>
+          <button class="nav-item" type="button" data-page="inventory"><span class="nav-icon">🏷️</span><span class="nav-label" data-i18n="nav.inventory">库存价目</span></button>
+          <button class="nav-item" type="button" data-page="products"><span class="nav-icon">🔌</span><span class="nav-label" data-i18n="nav.products">产品</span></button>
+        </div>
+      </div>
+      <div class="nav-group open" data-group="settings">
+        <button class="nav-group-toggle" type="button" data-group-toggle="settings"><span class="nav-group-label" data-i18n="group.settings">设置</span><span class="nav-group-caret">▾</span></button>
+        <div class="nav-group-items">
+          <button class="nav-item" type="button" data-page="customfields"><span class="nav-icon">🧩</span><span class="nav-label" data-i18n="nav.customfields">自定义字段</span></button>
+          <button class="nav-item" type="button" data-page="customobjects"><span class="nav-icon">🗂️</span><span class="nav-label" data-i18n="nav.customobjects">自定义对象</span></button>
+          <button class="nav-item" type="button" data-page="workflows"><span class="nav-icon">⚡</span><span class="nav-label" data-i18n="nav.workflows">工作流</span></button>
+          <button class="nav-item" type="button" data-page="roles"><span class="nav-icon">🔐</span><span class="nav-label" data-i18n="nav.roles">权限角色</span></button>
+          <button class="nav-item" type="button" data-page="integration"><span class="nav-icon">🌐</span><span class="nav-label" data-i18n="nav.integration">独立站对接</span></button>
+          <button class="nav-item" type="button" data-page="settings"><span class="nav-icon">⚙️</span><span class="nav-label" data-i18n="nav.settings">定制中心</span></button>
+        </div>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="sidebar-footer-note" data-i18n="sidebar.footer">Guca CRM · 轻量外贸 CRM</span>
+    </div>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ============ Main ============ -->
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" id="btnSidebar" type="button" aria-label="Toggle sidebar">☰</button>
+      <div class="topbar-logo"><span class="brand-mark">G</span><span>Guca CRM</span></div>
+      <div class="topbar-search">
+        <span class="search-icon">🔍</span>
+        <input id="globalSearch" type="search" data-i18n-placeholder="search.placeholder" placeholder="搜索线索、客户、订单…" autocomplete="off">
+      </div>
+      <div class="topbar-actions">
+        <div class="quick-create-wrap">
+          <button class="btn btn-primary" id="btnQuickCreate" type="button"><span aria-hidden="true">＋</span> <span data-i18n="btn.quickCreate">新建</span></button>
+          <div class="quick-create-menu" id="quickCreateMenu" hidden>
+            <button type="button" data-create="lead" data-i18n="quick.lead">新建线索</button>
+            <button type="button" data-create="deal" data-i18n="quick.deal">新建商机</button>
+            <button type="button" data-create="customer" data-i18n="quick.customer">新建客户</button>
+            <button type="button" data-create="order" data-i18n="quick.order">新建订单</button>
+            <button type="button" data-create="task" data-i18n="quick.task">新建待办</button>
+          </div>
+        </div>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button class="lang-btn active" id="langZh" type="button">中文</button>
+          <button class="lang-btn" id="langEn" type="button">EN</button>
+        </div>
+        <button class="btn btn-ghost" id="btnTheme" type="button"><span aria-hidden="true">🎨</span> <span data-i18n="btn.theme">定制</span></button>
+        <button class="todo-btn" id="todoBadge" type="button" aria-label="Todo"><span aria-hidden="true">✓</span><span class="todo-count" id="todoCount">0</span></button>
+        <div class="user-chip"><span class="user-avatar" id="userAvatar">Q</span><span class="user-name" id="userName" data-i18n="user.admin">管理员</span></div>
+      </div>
+    </header>
+
+    <main id="pageRoot">
+      <!-- ============ Dashboard ============ -->
+      <section class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.dashboard.title">工作台</h1>
+            <span class="count-bubble" data-bubble="dashboard" style="--bubble:#1A56DB">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" id="dashPrev" type="button" aria-label="Previous desktop page">‹</button>
+            <div class="dash-dots" id="dashDots"></div>
+            <button class="btn btn-ghost" id="dashNext" type="button" aria-label="Next desktop page">›</button>
+            <button class="btn btn-ghost" id="btnEditDesktop" type="button"><span data-i18n="btn.editDesktop">编辑桌面</span></button>
+          </div>
+        </div>
+        <div class="dash-grid" id="dashGrid">
+          <div class="widget w-small" data-widget="kpi-leads">
+            <div class="widget-header"><span class="widget-title" data-i18n="widget.kpiLeads">线索总数</span><span class="drag-handle" title="Drag">⠿</span></div>
+            <div class="widget-body" id="wKpiLeads"></div>
+          </div>
+          <div class="widget w-small" data-widget="kpi-deals">
+            <div class="widget-header"><span class="widget-title" data-i18n="widget.kpiDeals">商机总额</span><span class="drag-handle" title="Drag">⠿</span></div>
+            <div class="widget-body" id="wKpiDeals"></div>
+          </div>
+          <div class="widget w-small" data-widget="kpi-receivable">
+            <div class="widget-header"><span class="widget-title" data-i18n="widget.kpiReceivable">应收账款</span><span class="drag-handle" title="Drag">⠿</span></div>
+            <div class="widget-body" id="wKpiReceivable"></div>
+          </div>
+          <div class="widget w-small" data-widget="kpi-received">
+            <div class="widget-header"><span class="widget-title" data-i18n="widget.kpiReceived">已收款</span><span class="drag-handle" title="Drag">⠿</span></div>
+            <div class="widget-body" id="wKpiReceived"></div>
+          </div>
+          <div class="widget w-wide" data-widget="ai-brief">
+            <div class="widget-header"><span class="widget-title" data-i18n="widget.aiBrief">AI 今日简报</span><span class="drag-handle" title="Drag">⠿</span></div>
+            <div class="widget-body" id="wAiBrief"></div>
+          </div>
+          <div class="widget w-standard" data-widget="funnel">
+            <div class="widget-header"><span class="widget-title" data-i18n="widget.funnel">销售漏斗</span><span class="drag-handle" title="Drag">⠿</span></div>
+            <div class="widget-body" id="wFunnel"></div>
+          </div>
+          <div class="widget w-standard" data-widget="country-chart">
+            <div class="widget-header"><span class="widget-title" data-i18n="widget.countryChart">线索国家分布</span><span class="drag-handle" title="Drag">⠿</span></div>
+            <div class="widget-body" id="wCountryChart"></div>
+          </div>
+          <div class="widget w-standard" data-widget="sla-list">
+            <div class="widget-header"><span class="widget-title" data-i18n="widget.slaList">SLA 逾期提醒</span><span class="drag-handle" title="Drag">⠿</span></div>
+            <div class="widget-body" id="wSlaList"></div>
+          </div>
+          <div class="widget w-standard" data-widget="today-tasks">
+            <div class="widget-header"><span class="widget-title" data-i18n="widget.todayTasks">今日待办</span><span class="drag-handle" title="Drag">⠿</span></div>
+            <div class="widget-body" id="wTodayTasks"></div>
+          </div>
+          <div class="widget w-wide" data-widget="recent-orders">
+            <div class="widget-header"><span class="widget-title" data-i18n="widget.recentOrders">最新订单</span><span class="drag-handle" title="Drag">⠿</span></div>
+            <div class="widget-body" id="wRecentOrders"></div>
+          </div>
+          <div class="widget w-standard" data-widget="unread-chat">
+            <div class="widget-header"><span class="widget-title" data-i18n="widget.unreadChat">未读消息</span><span class="drag-handle" title="Drag">⠿</span></div>
+            <div class="widget-body" id="wUnreadChat"></div>
+          </div>
+        </div>
+        <div class="empty" id="dashEmpty" hidden data-i18n="empty.dashboard">桌面暂无组件，点击“编辑桌面”添加</div>
+      </section>
+
+      <!-- ============ Leads ============ -->
+      <section class="page" id="page-leads">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.leads.title">线索</h1>
+            <span class="count-bubble" data-bubble="leads" style="--bubble:#1A56DB">9</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" id="btnSaveView" type="button"><span data-i18n="btn.saveView">保存视图</span></button>
+            <button class="btn btn-ghost" id="btnImportLeads" type="button"><span data-i18n="btn.import">导入</span></button>
+            <button class="btn btn-ghost" id="btnExportLeads" type="button"><span data-i18n="btn.export">导出</span></button>
+            <button class="btn btn-primary" id="btnNewLead" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card filter-bar">
+          <input id="leadSearch" type="search" data-i18n-placeholder="leads.searchPlaceholder" placeholder="搜索公司 / 联系人 / 国家 / 产品">
+          <select id="leadStatusFilter" aria-label="Status filter">
+            <option value="" data-i18n="filter.allStatus">全部状态</option>
+            <option value="new" data-i18n="lead.status.new">新线索</option>
+            <option value="contacted" data-i18n="lead.status.contacted">已联系</option>
+            <option value="quoted" data-i18n="lead.status.quoted">已报价</option>
+            <option value="negotiating" data-i18n="lead.status.negotiating">谈判中</option>
+            <option value="won" data-i18n="lead.status.won">已成交</option>
+            <option value="lost" data-i18n="lead.status.lost">已丢单</option>
+          </select>
+          <select id="leadOwnerFilter" aria-label="Owner filter">
+            <option value="" data-i18n="filter.allOwners">全部负责人</option>
+          </select>
+          <select id="leadViewSelect" aria-label="Saved view">
+            <option value="" data-i18n="filter.allViews">全部视图</option>
+            <option value="A" data-i18n="view.gradeA">A 级客户</option>
+            <option value="overdue" data-i18n="view.overdue">逾期未跟进</option>
+          </select>
+        </div>
+        <div class="bulk-bar" id="leadBulkBar" hidden>
+          <span class="bulk-count" id="leadBulkCount">0</span><span data-i18n="bulk.selected">条已选</span>
+          <button class="btn btn-ghost btn-sm" id="btnBulkAssign" type="button"><span data-i18n="bulk.assign">分配负责人</span></button>
+          <button class="btn btn-ghost btn-sm" id="btnBulkStatus" type="button"><span data-i18n="bulk.status">批量改状态</span></button>
+          <button class="btn btn-danger btn-sm" id="btnBulkDelete" type="button"><span data-i18n="bulk.delete">批量删除</span></button>
+          <button class="btn btn-ghost btn-sm" id="btnBulkClear" type="button"><span data-i18n="bulk.clear">取消选择</span></button>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table id="leadsTable">
+              <thead><tr>
+                <th class="col-check"><input type="checkbox" id="leadSelectAll" aria-label="Select all"></th>
+                <th data-i18n="col.company">公司</th>
+                <th data-i18n="col.contact">联系人</th>
+                <th data-i18n="col.country">国家</th>
+                <th data-i18n="col.product">产品</th>
+                <th data-i18n="col.value">金额</th>
+                <th data-i18n="col.grade">等级 / 评分</th>
+                <th data-i18n="col.status">状态</th>
+                <th data-i18n="col.sla">SLA</th>
+                <th data-i18n="col.owner">负责人</th>
+                <th data-i18n="col.actions">操作</th>
+              </tr></thead>
+              <tbody id="leadsBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="leadsEmpty" hidden data-i18n="empty.leads">暂无线索，点击“新建”添加第一条线索</div>
+        </div>
+        <div class="card import-card" id="leadImportCard">
+          <h3 data-i18n="leads.importTitle">CSV 导入</h3>
+          <p class="muted" data-i18n="leads.importHint">表头：name,company,country,product,status,value,owner,email,phone</p>
+          <textarea id="leadCsvInput" rows="3" data-i18n-placeholder="leads.csvPlaceholder" placeholder="name,company,country,product,status,value,owner,email,phone"></textarea>
+          <div class="form-row"><button class="btn btn-primary" id="btnDoImportLeads" type="button"><span data-i18n="btn.import">导入</span></button><span class="muted" id="leadImportMsg"></span></div>
+          <input type="file" id="leadCsvFile" accept=".csv" hidden>
+        </div>
+      </section>
+
+      <!-- ============ Deals / Kanban ============ -->
+      <section class="page" id="page-deals">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.deals.title">商机</h1>
+            <span class="count-bubble" data-bubble="deals" style="--bubble:#7C3AED">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" id="btnExportDeals" type="button"><span data-i18n="btn.export">导出</span></button>
+            <button class="btn btn-primary" id="btnNewDeal" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="kanban" id="kanban">
+          <div class="kanban-col" data-stage="inquiry"><div class="kanban-col-header"><span class="kanban-stage" data-i18n="stage.inquiry">询盘</span><span class="count-bubble" data-bubble="stage-inquiry" style="--bubble:#1A56DB">0</span></div><div class="kanban-cards" id="kanban-inquiry"></div></div>
+          <div class="kanban-col" data-stage="confirm"><div class="kanban-col-header"><span class="kanban-stage" data-i18n="stage.confirm">确认需求</span><span class="count-bubble" data-bubble="stage-confirm" style="--bubble:#1A56DB">0</span></div><div class="kanban-cards" id="kanban-confirm"></div></div>
+          <div class="kanban-col" data-stage="quote"><div class="kanban-col-header"><span class="kanban-stage" data-i18n="stage.quote">报价</span><span class="count-bubble" data-bubble="stage-quote" style="--bubble:#F59E0B">0</span></div><div class="kanban-cards" id="kanban-quote"></div></div>
+          <div class="kanban-col" data-stage="negotiate"><div class="kanban-col-header"><span class="kanban-stage" data-i18n="stage.negotiate">谈判</span><span class="count-bubble" data-bubble="stage-negotiate" style="--bubble:#F59E0B">0</span></div><div class="kanban-cards" id="kanban-negotiate"></div></div>
+          <div class="kanban-col" data-stage="sample"><div class="kanban-col-header"><span class="kanban-stage" data-i18n="stage.sample">样品</span><span class="count-bubble" data-bubble="stage-sample" style="--bubble:#7C3AED">0</span></div><div class="kanban-cards" id="kanban-sample"></div></div>
+          <div class="kanban-col" data-stage="won"><div class="kanban-col-header"><span class="kanban-stage" data-i18n="stage.won">成交</span><span class="count-bubble" data-bubble="stage-won" style="--bubble:#10B981">0</span></div><div class="kanban-cards" id="kanban-won"></div></div>
+          <div class="kanban-col" data-stage="lost"><div class="kanban-col-header"><span class="kanban-stage" data-i18n="stage.lost">丢单</span><span class="count-bubble" data-bubble="stage-lost" style="--bubble:#EF4444">0</span></div><div class="kanban-cards" id="kanban-lost"></div></div>
+        </div>
+        <div class="empty" id="dealsEmpty" hidden data-i18n="empty.deals">暂无商机，从线索转化或点击“新建”添加</div>
+      </section>
+
+      <!-- ============ Customers ============ -->
+      <section class="page" id="page-customers">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.customers.title">客户</h1>
+            <span class="count-bubble" data-bubble="customers" style="--bubble:#1A56DB">0</span>
+          </div>
+          <div class="page-actions">
+            <input id="customerSearch" type="search" data-i18n-placeholder="customers.searchPlaceholder" placeholder="搜索公司 / 联系人">
+            <button class="btn btn-ghost" id="btnExportCustomers" type="button"><span data-i18n="btn.export">导出</span></button>
+            <button class="btn btn-primary" id="btnNewCustomer" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="split-layout">
+          <div class="card table-card split-main">
+            <div class="table-wrap">
+              <table id="customersTable">
+                <thead><tr>
+                  <th data-i18n="col.company">公司</th>
+                  <th data-i18n="col.contact">联系人</th>
+                  <th data-i18n="col.country">国家</th>
+                  <th data-i18n="col.level">等级</th>
+                  <th data-i18n="col.email">邮箱</th>
+                  <th data-i18n="col.phone">电话</th>
+                  <th data-i18n="col.actions">操作</th>
+                </tr></thead>
+                <tbody id="customersBody"></tbody>
+              </table>
+            </div>
+            <div class="empty" id="customersEmpty" hidden data-i18n="empty.customers">暂无客户</div>
+          </div>
+          <div class="card customer-detail" id="customerDetail">
+            <div class="customer-detail-header">
+              <h3 id="customerDetailName" data-i18n="customers.detailTitle">客户详情</h3>
+              <button class="icon-btn" id="btnCloseCustomerDetail" type="button" aria-label="Close">×</button>
+            </div>
+            <div class="customer-detail-fields" id="customerFields"></div>
+            <h4 data-i18n="customers.timeline">跟进时间线</h4>
+            <div class="timeline" id="customerTimeline"></div>
+            <div class="empty" id="customerTimelineEmpty" hidden data-i18n="empty.timeline">暂无跟进记录</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Activities ============ -->
+      <section class="page" id="page-activities">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.activities.title">跟进记录</h1>
+            <span class="count-bubble" data-bubble="activities" style="--bubble:#1A56DB">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary" id="btnNewActivity" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table id="activitiesTable">
+              <thead><tr>
+                <th data-i18n="col.date">日期</th>
+                <th data-i18n="col.type">类型</th>
+                <th data-i18n="col.lead">关联线索</th>
+                <th data-i18n="col.content">内容</th>
+                <th data-i18n="col.by">跟进人</th>
+                <th data-i18n="col.actions">操作</th>
+              </tr></thead>
+              <tbody id="activitiesBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="activitiesEmpty" hidden data-i18n="empty.activities">暂无跟进记录</div>
+        </div>
+        <div class="card">
+          <h3 data-i18n="activities.addTitle">快速记录跟进</h3>
+          <div class="form-row">
+            <select id="activityLead" aria-label="Lead"></select>
+            <select id="activityType" aria-label="Type">
+              <option value="call" data-i18n="activity.type.call">电话</option>
+              <option value="email" data-i18n="activity.type.email">邮件</option>
+              <option value="whatsapp" data-i18n="activity.type.whatsapp">WhatsApp</option>
+              <option value="wechat" data-i18n="activity.type.wechat">企微</option>
+            </select>
+            <input id="activityText" type="text" data-i18n-placeholder="activities.textPlaceholder" placeholder="跟进内容">
+            <button class="btn btn-primary" id="btnAddActivity" type="button"><span data-i18n="btn.add">添加</span></button>
+          </div>
+        </div>
+      </section>
+      <!-- ============ Products ============ -->
+      <section class="page" id="page-products">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.products.title">产品</h1>
+            <span class="count-bubble" data-bubble="products" style="--bubble:#7C3AED">0</span>
+          </div>
+          <div class="page-actions">
+            <input id="productSearch" type="search" data-i18n-placeholder="products.searchPlaceholder" placeholder="搜索产品名称 / 型号">
+            <button class="btn btn-primary" id="btnNewProduct" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table id="productsTable">
+              <thead><tr>
+                <th data-i18n="col.sku">型号</th>
+                <th data-i18n="col.name">产品名称</th>
+                <th data-i18n="col.category">分类</th>
+                <th data-i18n="col.price">价格</th>
+                <th data-i18n="col.stock">库存</th>
+                <th data-i18n="col.status">状态</th>
+                <th data-i18n="col.actions">操作</th>
+              </tr></thead>
+              <tbody id="productsBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="productsEmpty" hidden data-i18n="empty.products">暂无产品</div>
+        </div>
+      </section>
+
+      <!-- ============ Quotes ============ -->
+      <section class="page" id="page-quotes">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.quotes.title">报价单</h1>
+            <span class="count-bubble" data-bubble="quotes" style="--bubble:#F59E0B">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" id="btnExportQuotes" type="button"><span data-i18n="btn.export">导出</span></button>
+            <button class="btn btn-primary" id="btnNewQuote" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table id="quotesTable">
+              <thead><tr>
+                <th data-i18n="col.quoteNo">报价单号</th>
+                <th data-i18n="col.company">客户公司</th>
+                <th data-i18n="col.product">产品</th>
+                <th data-i18n="col.amount">金额</th>
+                <th data-i18n="col.validUntil">有效期至</th>
+                <th data-i18n="col.status">状态</th>
+                <th data-i18n="col.actions">操作</th>
+              </tr></thead>
+              <tbody id="quotesBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="quotesEmpty" hidden data-i18n="empty.quotes">暂无报价单</div>
+        </div>
+      </section>
+
+      <!-- ============ Orders ============ -->
+      <section class="page" id="page-orders">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.orders.title">订单</h1>
+            <span class="count-bubble" data-bubble="orders" style="--bubble:#1A56DB">0</span>
+          </div>
+          <div class="page-actions">
+            <select id="orderStatusFilter" aria-label="Order status filter">
+              <option value="" data-i18n="filter.allStatus">全部状态</option>
+              <option value="production" data-i18n="order.status.production">生产中</option>
+              <option value="qc" data-i18n="order.status.qc">质检</option>
+              <option value="packing" data-i18n="order.status.packing">打包</option>
+              <option value="shipped" data-i18n="order.status.shipped">已发货</option>
+              <option value="paid" data-i18n="order.status.paid">已收款</option>
+              <option value="done" data-i18n="order.status.done">已完成</option>
+            </select>
+            <button class="btn btn-ghost" id="btnExportOrders" type="button"><span data-i18n="btn.export">导出</span></button>
+            <button class="btn btn-primary" id="btnNewOrder" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="order-board" id="orderBoard">
+          <div class="order-col" data-order-stage="production"><div class="kanban-col-header"><span data-i18n="order.status.production">生产中</span><span class="count-bubble" data-bubble="orders-production" style="--bubble:#1A56DB">0</span></div><div class="order-cards" id="orderColProduction"></div></div>
+          <div class="order-col" data-order-stage="qc"><div class="kanban-col-header"><span data-i18n="order.status.qc">质检</span><span class="count-bubble" data-bubble="orders-qc" style="--bubble:#F59E0B">0</span></div><div class="order-cards" id="orderColQc"></div></div>
+          <div class="order-col" data-order-stage="packing"><div class="kanban-col-header"><span data-i18n="order.status.packing">打包</span><span class="count-bubble" data-bubble="orders-packing" style="--bubble:#7C3AED">0</span></div><div class="order-cards" id="orderColPacking"></div></div>
+          <div class="order-col" data-order-stage="shipped"><div class="kanban-col-header"><span data-i18n="order.status.shipped">已发货</span><span class="count-bubble" data-bubble="orders-shipped" style="--bubble:#1A56DB">0</span></div><div class="order-cards" id="orderColShipped"></div></div>
+          <div class="order-col" data-order-stage="paid"><div class="kanban-col-header"><span data-i18n="order.status.paid">已收款</span><span class="count-bubble" data-bubble="orders-paid" style="--bubble:#10B981">0</span></div><div class="order-cards" id="orderColPaid"></div></div>
+          <div class="order-col" data-order-stage="done"><div class="kanban-col-header"><span data-i18n="order.status.done">已完成</span><span class="count-bubble" data-bubble="orders-done" style="--bubble:#10B981">0</span></div><div class="order-cards" id="orderColDone"></div></div>
+        </div>
+        <div class="empty" id="ordersEmpty" hidden data-i18n="empty.orders">暂无订单</div>
+      </section>
+
+      <!-- ============ Shipments ============ -->
+      <section class="page" id="page-shipments">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.shipments.title">发货物流</h1>
+            <span class="count-bubble" data-bubble="shipments" style="--bubble:#1A56DB">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary" id="btnNewShipment" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table id="shipmentsTable">
+              <thead><tr>
+                <th data-i18n="col.shipNo">运单号</th>
+                <th data-i18n="col.orderNo">订单号</th>
+                <th data-i18n="col.company">客户公司</th>
+                <th data-i18n="col.carrier">物流商</th>
+                <th data-i18n="col.tracking">追踪号</th>
+                <th data-i18n="col.status">状态</th>
+                <th data-i18n="col.actions">操作</th>
+              </tr></thead>
+              <tbody id="shipmentsBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="shipmentsEmpty" hidden data-i18n="empty.shipments">暂无发货记录</div>
+        </div>
+      </section>
+
+      <!-- ============ Invoices ============ -->
+      <section class="page" id="page-invoices">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.invoices.title">发票收款</h1>
+            <span class="count-bubble" data-bubble="invoices" style="--bubble:#F59E0B">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" id="btnExportInvoices" type="button"><span data-i18n="btn.export">导出</span></button>
+            <button class="btn btn-primary" id="btnNewInvoice" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table id="invoicesTable">
+              <thead><tr>
+                <th data-i18n="col.invoiceNo">发票号</th>
+                <th data-i18n="col.orderNo">订单号</th>
+                <th data-i18n="col.company">客户公司</th>
+                <th data-i18n="col.amount">金额</th>
+                <th data-i18n="col.paid">已收</th>
+                <th data-i18n="col.dueDate">到期日</th>
+                <th data-i18n="col.status">状态</th>
+                <th data-i18n="col.actions">操作</th>
+              </tr></thead>
+              <tbody id="invoicesBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="invoicesEmpty" hidden data-i18n="empty.invoices">暂无发票</div>
+        </div>
+      </section>
+
+      <!-- ============ Finance ============ -->
+      <section class="page" id="page-finance">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.finance.title">财务看板</h1>
+            <span class="count-bubble" data-bubble="finance" style="--bubble:#10B981">0</span>
+          </div>
+          <div class="page-actions">
+            <select id="financeRange" aria-label="Range">
+              <option value="30d" data-i18n="finance.range30">近 30 天</option>
+              <option value="90d" data-i18n="finance.range90">近 90 天</option>
+              <option value="12m" data-i18n="finance.range12m">近 12 个月</option>
+            </select>
+            <button class="btn btn-ghost" id="btnExportFinance" type="button"><span data-i18n="btn.export">导出</span></button>
+          </div>
+        </div>
+        <div class="stat-grid">
+          <div class="card stat-card"><span class="stat-label" data-i18n="finance.receivable">应收账款</span><b class="stat-value" id="finReceivable">$0</b></div>
+          <div class="card stat-card"><span class="stat-label" data-i18n="finance.received">已收款</span><b class="stat-value" id="finReceived">$0</b></div>
+          <div class="card stat-card"><span class="stat-label" data-i18n="finance.overdue">逾期未收</span><b class="stat-value stat-danger" id="finOverdue">$0</b></div>
+          <div class="card stat-card"><span class="stat-label" data-i18n="finance.monthRevenue">本月营收</span><b class="stat-value" id="finMonthRevenue">$0</b></div>
+        </div>
+        <div class="card">
+          <h3 data-i18n="finance.trendTitle">收支趋势</h3>
+          <div class="chart-box" id="financeTrend"></div>
+          <div class="empty" id="financeTrendEmpty" hidden data-i18n="empty.financeTrend">暂无财务数据</div>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table id="financeTable">
+              <thead><tr>
+                <th data-i18n="col.date">日期</th>
+                <th data-i18n="col.type">类型</th>
+                <th data-i18n="col.company">客户公司</th>
+                <th data-i18n="col.amount">金额</th>
+                <th data-i18n="col.status">状态</th>
+              </tr></thead>
+              <tbody id="financeBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Inventory ============ -->
+      <section class="page" id="page-inventory">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.inventory.title">库存价目</h1>
+            <span class="count-bubble" data-bubble="inventory" style="--bubble:#7C3AED">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" id="btnAdjustStock" type="button"><span data-i18n="btn.adjustStock">出入库</span></button>
+            <button class="btn btn-primary" id="btnNewInventoryItem" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table id="inventoryTable">
+              <thead><tr>
+                <th data-i18n="col.sku">型号</th>
+                <th data-i18n="col.name">产品名称</th>
+                <th data-i18n="col.stock">库存</th>
+                <th data-i18n="col.priceTiers">价格阶梯</th>
+                <th data-i18n="col.cost">成本价</th>
+                <th data-i18n="col.actions">操作</th>
+              </tr></thead>
+              <tbody id="inventoryBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="inventoryEmpty" hidden data-i18n="empty.inventory">暂无库存记录</div>
+        </div>
+        <div class="card">
+          <h3 data-i18n="inventory.logTitle">出入库记录</h3>
+          <div class="stock-log" id="stockLog"></div>
+          <div class="empty" id="stockLogEmpty" hidden data-i18n="empty.stockLog">暂无出入库记录</div>
+        </div>
+      </section>
+      <!-- ============ Inbox ============ -->
+      <section class="page" id="page-inbox">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.inbox.title">全渠道收件箱</h1>
+            <span class="count-bubble" data-bubble="inbox" style="--bubble:#1A56DB">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" id="btnMarkAllRead" type="button"><span data-i18n="btn.markAllRead">全部标为已读</span></button>
+          </div>
+        </div>
+        <div class="channel-chips" id="channelChips">
+          <button class="chip active" type="button" data-channel="all" data-i18n="channel.all">全部</button>
+          <button class="chip" type="button" data-channel="whatsapp">WhatsApp</button>
+          <button class="chip" type="button" data-channel="email" data-i18n="channel.email">邮件</button>
+          <button class="chip" type="button" data-channel="wechat" data-i18n="channel.wechat">微信</button>
+          <button class="chip" type="button" data-channel="web" data-i18n="channel.web">独立站</button>
+          <button class="chip" type="button" data-channel="phone" data-i18n="channel.phone">电话</button>
+        </div>
+        <div class="chat-layout">
+          <aside class="thread-list" id="inboxThreads" aria-label="Threads"></aside>
+          <div class="chat-main">
+            <div class="chat-messages" id="inboxMessages"></div>
+            <div class="empty" id="inboxEmpty" data-i18n="empty.inbox">选择左侧会话查看消息</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Chat ============ -->
+      <section class="page" id="page-chat">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.chat.title">聊天</h1>
+            <span class="count-bubble" data-bubble="chat" style="--bubble:#1A56DB">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" id="btnChatTranslateAll" type="button"><span data-i18n="btn.translateAll">全部翻译</span></button>
+          </div>
+        </div>
+        <div class="chat-layout">
+          <aside class="thread-list" id="threadList" aria-label="Chat threads"></aside>
+          <div class="chat-main">
+            <div class="chat-header" id="chatHeader">
+              <div class="chat-peer">
+                <span class="chat-peer-avatar" id="chatPeerAvatar">?</span>
+                <div class="chat-peer-info">
+                  <b id="chatPeerName" data-i18n="chat.noThread">未选择会话</b>
+                  <span class="muted" id="chatPeerMeta"></span>
+                </div>
+              </div>
+              <div class="chat-header-meta">
+                <span class="pill" id="chatChannel">—</span>
+                <span class="pill pill-purple" id="chatPeerLang">—</span>
+              </div>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="empty" id="chatEmpty" data-i18n="empty.chat">选择左侧会话开始聊天</div>
+            <div class="translate-preview" id="translatePreview" hidden>
+              <div class="translate-preview-label" data-i18n="chat.translatePreview">翻译预览</div>
+              <div class="translate-preview-text" id="translatePreviewText"></div>
+              <div class="form-row">
+                <button class="btn btn-primary btn-sm" id="btnSendTranslated" type="button"><span data-i18n="btn.sendTranslated">发送译文</span></button>
+                <button class="btn btn-ghost btn-sm" id="btnSendOriginal" type="button"><span data-i18n="btn.sendOriginal">发送原文</span></button>
+              </div>
+            </div>
+            <div class="ai-panel" id="aiPanel" hidden>
+              <div class="ai-panel-header"><span data-i18n="chat.aiSuggestTitle">AI 建议回复</span><button class="icon-btn" id="btnCloseAiPanel" type="button" aria-label="Close">×</button></div>
+              <div class="ai-field"><label data-i18n="chat.replyZh">中文回复</label><div class="ai-text" id="aiReplyZh"></div></div>
+              <div class="ai-field"><label data-i18n="chat.reasoning">推理</label><div class="ai-text" id="aiReasoning"></div></div>
+              <div class="ai-field"><label data-i18n="chat.evidence">依据</label><div class="ai-text" id="aiEvidence"></div></div>
+              <div class="form-row">
+                <button class="btn btn-primary btn-sm" id="btnUseAiReply" type="button"><span data-i18n="btn.useReply">采用此回复</span></button>
+                <button class="btn btn-ghost btn-sm" id="btnRegenAi" type="button"><span data-i18n="btn.regenerate">重新生成</span></button>
+              </div>
+            </div>
+            <div class="draft-hint" id="draftHint" hidden></div>
+            <div class="chat-composer">
+              <textarea id="chatInput" rows="2" data-i18n-placeholder="chat.inputPlaceholder" placeholder="输入消息…（中文可点 AI 翻译）"></textarea>
+              <div class="composer-actions">
+                <button class="btn btn-ghost" id="btnAiSuggest" type="button"><span aria-hidden="true">✨</span> <span data-i18n="btn.aiSuggest">AI 建议</span></button>
+                <button class="btn btn-ghost" id="btnTranslateInput" type="button"><span data-i18n="btn.translate">翻译</span></button>
+                <button class="btn btn-primary" id="btnChatSend" type="button"><span data-i18n="btn.send">发送</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Prospects (AI 获客) ============ -->
+      <section class="page" id="page-prospects">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.prospects.title">AI获客</h1>
+            <span class="count-bubble" data-bubble="prospects" style="--bubble:#7C3AED">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary" id="btnRunProspecting" type="button"><span data-i18n="btn.runProspecting">开始获客</span></button>
+          </div>
+        </div>
+        <div class="card filter-bar">
+          <input id="prospectSearch" type="search" data-i18n-placeholder="prospects.searchPlaceholder" placeholder="搜索公司 / 国家 / 产品关键词">
+          <select id="prospectCountryFilter" aria-label="Country filter">
+            <option value="" data-i18n="filter.allCountries">全部国家</option>
+          </select>
+          <select id="prospectProvider" aria-label="AI provider">
+            <option value="openai">OpenAI</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="gemini">Gemini</option>
+            <option value="custom" data-i18n="prospects.customProvider">自定义兼容接口</option>
+          </select>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table id="prospectsTable">
+              <thead><tr>
+                <th data-i18n="col.company">公司</th>
+                <th data-i18n="col.country">国家</th>
+                <th data-i18n="col.contact">联系人</th>
+                <th data-i18n="col.email">邮箱</th>
+                <th data-i18n="col.score">匹配度</th>
+                <th data-i18n="col.source">来源</th>
+                <th data-i18n="col.actions">操作</th>
+              </tr></thead>
+              <tbody id="prospectsBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="prospectsEmpty" hidden data-i18n="empty.prospects">暂无获客结果，配置 AI 后点击“开始获客”</div>
+        </div>
+      </section>
+
+      <!-- ============ Marketing ============ -->
+      <section class="page" id="page-marketing">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.marketing.title">营销活动</h1>
+            <span class="count-bubble" data-bubble="marketing" style="--bubble:#F59E0B">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary" id="btnNewCampaign" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card-grid" id="campaignList"></div>
+        <div class="empty" id="campaignEmpty" hidden data-i18n="empty.campaigns">暂无营销活动</div>
+      </section>
+
+      <!-- ============ Segments ============ -->
+      <section class="page" id="page-segments">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.segments.title">邮件分群</h1>
+            <span class="count-bubble" data-bubble="segments" style="--bubble:#1A56DB">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary" id="btnNewSegment" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card-grid" id="segmentList"></div>
+        <div class="empty" id="segmentEmpty" hidden data-i18n="empty.segments">暂无邮件分群</div>
+      </section>
+
+      <!-- ============ Cases ============ -->
+      <section class="page" id="page-cases">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.cases.title">售后工单</h1>
+            <span class="count-bubble" data-bubble="cases" style="--bubble:#EF4444">0</span>
+          </div>
+          <div class="page-actions">
+            <select id="caseStatusFilter" aria-label="Case status filter">
+              <option value="" data-i18n="filter.allStatus">全部状态</option>
+              <option value="open" data-i18n="case.status.open">待处理</option>
+              <option value="progress" data-i18n="case.status.progress">处理中</option>
+              <option value="resolved" data-i18n="case.status.resolved">已解决</option>
+              <option value="closed" data-i18n="case.status.closed">已关闭</option>
+            </select>
+            <button class="btn btn-primary" id="btnNewCase" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table id="casesTable">
+              <thead><tr>
+                <th data-i18n="col.caseNo">工单号</th>
+                <th data-i18n="col.company">客户公司</th>
+                <th data-i18n="col.subject">主题</th>
+                <th data-i18n="col.priority">优先级</th>
+                <th data-i18n="col.status">状态</th>
+                <th data-i18n="col.owner">负责人</th>
+                <th data-i18n="col.actions">操作</th>
+              </tr></thead>
+              <tbody id="casesBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="casesEmpty" hidden data-i18n="empty.cases">暂无售后工单</div>
+        </div>
+      </section>
+
+      <!-- ============ Knowledge ============ -->
+      <section class="page" id="page-knowledge">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.knowledge.title">资料库</h1>
+            <span class="count-bubble" data-bubble="knowledge" style="--bubble:#1A56DB">0</span>
+          </div>
+          <div class="page-actions">
+            <input id="knowledgeSearch" type="search" data-i18n-placeholder="knowledge.searchPlaceholder" placeholder="搜索资料标题 / 分类">
+            <button class="btn btn-primary" id="btnNewDoc" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card-grid" id="knowledgeGrid"></div>
+        <div class="empty" id="knowledgeEmpty" hidden data-i18n="empty.knowledge">暂无资料</div>
+      </section>
+
+      <!-- ============ Reports ============ -->
+      <section class="page" id="page-reports">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.reports.title">报表</h1>
+            <span class="count-bubble" data-bubble="reports" style="--bubble:#1A56DB">0</span>
+          </div>
+          <div class="page-actions">
+            <select id="reportRange" aria-label="Report range">
+              <option value="30d" data-i18n="finance.range30">近 30 天</option>
+              <option value="90d" data-i18n="finance.range90">近 90 天</option>
+              <option value="12m" data-i18n="finance.range12m">近 12 个月</option>
+            </select>
+            <button class="btn btn-ghost" id="btnExportReports" type="button"><span data-i18n="btn.export">导出</span></button>
+          </div>
+        </div>
+        <div class="report-grid" id="reportGrid">
+          <div class="card"><h3 data-i18n="reports.byCountry">线索按国家</h3><div class="chart-box" id="reportByCountry"></div></div>
+          <div class="card"><h3 data-i18n="reports.byOwner">商机金额按负责人</h3><div class="chart-box" id="reportByOwner"></div></div>
+          <div class="card"><h3 data-i18n="reports.funnel">转化漏斗</h3><div class="chart-box" id="reportFunnel"></div></div>
+          <div class="card"><h3 data-i18n="reports.monthly">月度趋势</h3><div class="chart-box" id="reportMonthly"></div></div>
+        </div>
+        <div class="empty" id="reportsEmpty" hidden data-i18n="empty.reports">暂无报表数据</div>
+      </section>
+
+      <!-- ============ Calendar ============ -->
+      <section class="page" id="page-calendar">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.calendar.title">日历</h1>
+            <span class="count-bubble" data-bubble="calendar" style="--bubble:#7C3AED">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" id="btnCalPrev" type="button" aria-label="Previous month">‹</button>
+            <b class="calendar-title" id="calendarTitle"></b>
+            <button class="btn btn-ghost" id="btnCalNext" type="button" aria-label="Next month">›</button>
+            <button class="btn btn-primary" id="btnNewEvent" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="calendar-grid" id="calendarGrid"></div>
+          <div class="empty" id="calendarEmpty" hidden data-i18n="empty.calendar">本月暂无日程</div>
+        </div>
+        <div class="card">
+          <h3 data-i18n="calendar.todayTitle">今日日程</h3>
+          <div id="calendarToday"></div>
+        </div>
+      </section>
+      <!-- ============ Custom Fields ============ -->
+      <section class="page" id="page-customfields">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.customfields.title">自定义字段</h1>
+            <span class="count-bubble" data-bubble="customfields" style="--bubble:#7C3AED">0</span>
+          </div>
+          <div class="page-actions">
+            <select id="customFieldEntity" aria-label="Entity">
+              <option value="lead" data-i18n="entity.lead">线索</option>
+              <option value="deal" data-i18n="entity.deal">商机</option>
+              <option value="customer" data-i18n="entity.customer">客户</option>
+              <option value="order" data-i18n="entity.order">订单</option>
+              <option value="product" data-i18n="entity.product">产品</option>
+            </select>
+            <button class="btn btn-primary" id="btnNewField" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table id="customFieldsTable">
+              <thead><tr>
+                <th data-i18n="col.fieldLabel">字段名</th>
+                <th data-i18n="col.fieldName">内部名</th>
+                <th data-i18n="col.fieldType">类型</th>
+                <th data-i18n="col.fieldOptions">下拉选项</th>
+                <th data-i18n="col.entity">所属对象</th>
+                <th data-i18n="col.actions">操作</th>
+              </tr></thead>
+              <tbody id="customFieldsBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="customFieldsEmpty" hidden data-i18n="empty.customFields">暂无自定义字段</div>
+        </div>
+        <div class="card">
+          <h3 data-i18n="customfields.addTitle">快速添加字段到线索</h3>
+          <div class="form-row">
+            <input id="fieldLabel" type="text" data-i18n-placeholder="customfields.labelPlaceholder" placeholder="字段名，如 付款方式">
+            <select id="fieldType" aria-label="Field type">
+              <option value="text">text</option>
+              <option value="number">number</option>
+              <option value="select">select</option>
+              <option value="date">date</option>
+              <option value="textarea">textarea</option>
+              <option value="checkbox">checkbox</option>
+              <option value="url">url</option>
+              <option value="email">email</option>
+              <option value="phone">phone</option>
+              <option value="currency">currency</option>
+              <option value="percent">percent</option>
+              <option value="rating">rating</option>
+              <option value="file">file</option>
+              <option value="relation">relation</option>
+              <option value="formula">formula</option>
+            </select>
+            <input id="fieldOptions" type="text" data-i18n-placeholder="customfields.optionsPlaceholder" placeholder="下拉选项，逗号分隔">
+            <button class="btn btn-primary" id="btnAddField" type="button"><span data-i18n="btn.add">添加</span></button>
+          </div>
+          <p class="muted" data-i18n="customfields.addHint">添加后，新增线索表单里会出现这个字段，数据存在线索的 custom 对象里。</p>
+        </div>
+      </section>
+
+      <!-- ============ Custom Objects ============ -->
+      <section class="page" id="page-customobjects">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.customobjects.title">自定义对象</h1>
+            <span class="count-bubble" data-bubble="customobjects" style="--bubble:#7C3AED">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary" id="btnNewObject" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card-grid" id="customObjectsGrid"></div>
+        <div class="empty" id="customObjectsEmpty" hidden data-i18n="empty.customObjects">暂无自定义对象</div>
+      </section>
+
+      <!-- ============ Workflows ============ -->
+      <section class="page" id="page-workflows">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.workflows.title">工作流</h1>
+            <span class="count-bubble" data-bubble="workflows" style="--bubble:#F59E0B">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary" id="btnNewWorkflow" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="workflow-list" id="workflowList"></div>
+          <div class="empty" id="workflowEmpty" hidden data-i18n="empty.workflows">暂无工作流，创建第一条自动化规则</div>
+        </div>
+        <div class="card">
+          <h3 data-i18n="workflows.presetTitle">预设自动化规则</h3>
+          <div id="workflowPresets"></div>
+        </div>
+      </section>
+
+      <!-- ============ Roles ============ -->
+      <section class="page" id="page-roles">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.roles.title">权限角色</h1>
+            <span class="count-bubble" data-bubble="roles" style="--bubble:#EF4444">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary" id="btnNewRole" type="button"><span data-i18n="btn.new">＋ 新建</span></button>
+          </div>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table id="rolesTable">
+              <thead><tr>
+                <th data-i18n="col.roleName">角色</th>
+                <th data-i18n="col.roleDesc">说明</th>
+                <th data-i18n="col.roleMembers">成员</th>
+                <th data-i18n="col.rolePerms">权限</th>
+                <th data-i18n="col.actions">操作</th>
+              </tr></thead>
+              <tbody id="rolesBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="rolesEmpty" hidden data-i18n="empty.roles">暂无角色</div>
+        </div>
+      </section>
+
+      <!-- ============ Integration ============ -->
+      <section class="page" id="page-integration">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.integration.title">独立站对接</h1>
+            <span class="count-bubble" data-bubble="integration" style="--bubble:#1A56DB">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" id="btnTestIntegration" type="button"><span data-i18n="btn.testConnection">测试连接</span></button>
+            <button class="btn btn-primary" id="btnSaveIntegration" type="button"><span data-i18n="btn.save">保存</span></button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="integration-status" id="integrationStatus"><span class="pill" id="integrationStatusPill" data-i18n="integration.notConnected">未连接</span></div>
+          <div class="form-grid">
+            <label class="form-field"><span data-i18n="integration.siteUrl">独立站地址</span><input id="siteUrl" type="url" placeholder="https://example.com"></label>
+            <label class="form-field"><span data-i18n="integration.apiKey">API 密钥</span><input id="siteApiKey" type="password" data-i18n-placeholder="integration.apiKeyPlaceholder" placeholder="输入独立站 API 密钥"></label>
+            <label class="form-field"><span data-i18n="integration.inquiryForm">询盘表单字段映射</span><input id="siteFormMapping" type="text" placeholder="name, email, product, message"></label>
+            <label class="form-field"><span data-i18n="integration.autoImport">询盘自动导入</span><select id="siteAutoImport"><option value="on" data-i18n="common.on">开启</option><option value="off" data-i18n="common.off">关闭</option></select></label>
+          </div>
+          <p class="muted" data-i18n="integration.hint">独立站的询盘提交后会自动进入线索列表，并按规则分配负责人与 SLA 提醒。</p>
+        </div>
+        <div class="card">
+          <h3 data-i18n="integration.recentTitle">最近导入的询盘</h3>
+          <div id="integrationRecent"></div>
+          <div class="empty" id="integrationEmpty" hidden data-i18n="empty.integration">暂无导入记录</div>
+        </div>
+      </section>
+
+      <!-- ============ Settings / Customization ============ -->
+      <section class="page" id="page-settings">
+        <div class="page-header">
+          <div class="page-title-wrap">
+            <h1 data-i18n="page.settings.title">定制中心</h1>
+            <span class="count-bubble" data-bubble="settings" style="--bubble:#1A56DB">0</span>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" id="btnExportLayout" type="button"><span data-i18n="btn.exportLayout">导出布局</span></button>
+            <button class="btn btn-ghost" id="btnImportLayout" type="button"><span data-i18n="btn.importLayout">导入布局</span></button>
+            <input type="file" id="layoutFile" accept=".json" hidden>
+            <button class="btn btn-primary" id="btnSaveSettings" type="button"><span data-i18n="btn.save">保存</span></button>
+          </div>
+        </div>
+        <div class="settings-grid">
+          <div class="card">
+            <h3 data-i18n="settings.themeTitle">主题配色</h3>
+            <div class="theme-palettes" id="themePalettes">
+              <button class="swatch" type="button" data-palette="royal" style="--sw:#1A56DB" aria-label="Royal blue"><span data-i18n="palette.royal">宝蓝</span></button>
+              <button class="swatch" type="button" data-palette="purple" style="--sw:#7C3AED" aria-label="Purple"><span data-i18n="palette.purple">紫色</span></button>
+              <button class="swatch" type="button" data-palette="green" style="--sw:#10B981" aria-label="Green"><span data-i18n="palette.green">绿色</span></button>
+              <button class="swatch" type="button" data-palette="teal" style="--sw:#0D9488" aria-label="Teal"><span data-i18n="palette.teal">青色</span></button>
+              <button class="swatch" type="button" data-palette="sky" style="--sw:#0284C7" aria-label="Sky"><span data-i18n="palette.sky">天蓝</span></button>
+              <button class="swatch" type="button" data-palette="indigo" style="--sw:#4F46E5" aria-label="Indigo"><span data-i18n="palette.indigo">靛蓝</span></button>
+              <button class="swatch" type="button" data-palette="rose" style="--sw:#E11D48" aria-label="Rose"><span data-i18n="palette.rose">玫红</span></button>
+              <button class="swatch" type="button" data-palette="orange" style="--sw:#EA580C" aria-label="Orange"><span data-i18n="palette.orange">橙色</span></button>
+              <button class="swatch" type="button" data-palette="amber" style="--sw:#D97706" aria-label="Amber"><span data-i18n="palette.amber">琥珀</span></button>
+              <button class="swatch" type="button" data-palette="slate" style="--sw:#475569" aria-label="Slate"><span data-i18n="palette.slate">石板</span></button>
+              <button class="swatch" type="button" data-palette="pink" style="--sw:#DB2777" aria-label="Pink"><span data-i18n="palette.pink">粉色</span></button>
+              <button class="swatch" type="button" data-palette="cyan" style="--sw:#0891B2" aria-label="Cyan"><span data-i18n="palette.cyan">青蓝</span></button>
+            </div>
+            <label class="form-field"><span data-i18n="settings.customColor">自定义主色</span><input id="themeCustomColor" type="color" value="#1A56DB"></label>
+          </div>
+          <div class="card">
+            <h3 data-i18n="settings.displayTitle">显示与密度</h3>
+            <div class="form-grid">
+              <label class="form-field"><span data-i18n="settings.radius">圆角</span><select id="themeRadius"><option value="6px" data-i18n="radius.small">小</option><option value="10px" selected data-i18n="radius.medium">中</option><option value="16px" data-i18n="radius.large">大</option></select></label>
+              <label class="form-field"><span data-i18n="settings.density">密度</span><select id="themeDensity"><option value="compact" data-i18n="density.compact">紧凑</option><option value="comfortable" selected data-i18n="density.comfortable">舒适</option><option value="roomy" data-i18n="density.roomy">宽松</option></select></label>
+              <label class="form-field"><span data-i18n="settings.fontSize">字号</span><select id="themeFontSize"><option value="13px" data-i18n="fontSize.small">小</option><option value="14px" selected data-i18n="fontSize.medium">中</option><option value="16px" data-i18n="fontSize.large">大</option></select></label>
+            </div>
+          </div>
+          <div class="card">
+            <h3 data-i18n="settings.languageTitle">语言</h3>
+            <div class="lang-tab" id="settingsLangTab">
+              <button class="lang-btn active" id="settingsLangZh" type="button">中文</button>
+              <button class="lang-btn" id="settingsLangEn" type="button">English</button>
+            </div>
+            <label class="form-field"><span data-i18n="settings.language">界面语言</span><select id="settingsLang"><option value="zh">中文</option><option value="en">English</option></select></label>
+          </div>
+          <div class="card">
+            <h3 data-i18n="settings.notifyTitle">通知提醒</h3>
+            <label class="switch-row"><span data-i18n="notify.newLead">新线索提醒</span><input type="checkbox" id="notifNewLead" checked></label>
+            <label class="switch-row"><span data-i18n="notify.sla">SLA 逾期提醒</span><input type="checkbox" id="notifSla" checked></label>
+            <label class="switch-row"><span data-i18n="notify.chat">新消息提醒</span><input type="checkbox" id="notifChat" checked></label>
+            <label class="switch-row"><span data-i18n="notify.order">订单状态提醒</span><input type="checkbox" id="notifOrder" checked></label>
+            <label class="switch-row"><span data-i18n="notify.daily">每日简报推送</span><input type="checkbox" id="notifDaily"></label>
+          </div>
+          <div class="card">
+            <h3 data-i18n="settings.bubbleTitle">计数气泡颜色</h3>
+            <p class="muted" data-i18n="settings.bubbleHint">为各页面的计数气泡选择颜色，JS 通过 --bubble 变量应用。</p>
+            <div class="bubble-colors" id="bubbleColors">
+              <label class="form-field"><span data-i18n="nav.leads">线索</span><input type="color" id="bubbleColorLeads" value="#1A56DB" data-bubble-key="leads"></label>
+              <label class="form-field"><span data-i18n="nav.deals">商机</span><input type="color" id="bubbleColorDeals" value="#7C3AED" data-bubble-key="deals"></label>
+              <label class="form-field"><span data-i18n="nav.orders">订单</span><input type="color" id="bubbleColorOrders" value="#1A56DB" data-bubble-key="orders"></label>
+              <label class="form-field"><span data-i18n="nav.chat">聊天</span><input type="color" id="bubbleColorChat" value="#1A56DB" data-bubble-key="chat"></label>
+              <label class="form-field"><span data-i18n="nav.cases">售后工单</span><input type="color" id="bubbleColorCases" value="#EF4444" data-bubble-key="cases"></label>
+            </div>
+          </div>
+          <div class="card">
+            <h3 data-i18n="settings.layoutTitle">布局管理</h3>
+            <p class="muted" data-i18n="settings.layoutHint">导出当前桌面布局与定制，或导入之前保存的布局文件。</p>
+            <div class="form-row">
+              <button class="btn btn-ghost" id="btnExportLayout2" type="button"><span data-i18n="btn.exportLayout">导出布局</span></button>
+              <button class="btn btn-ghost" id="btnImportLayout2" type="button"><span data-i18n="btn.importLayout">导入布局</span></button>
+              <button class="btn btn-danger" id="btnResetLayout" type="button"><span data-i18n="btn.resetLayout">恢复默认</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- ============ Widget drawer ============ -->
+<div class="drawer" id="widgetDrawer" hidden aria-label="Widget drawer">
+  <div class="drawer-header">
+    <h3 data-i18n="drawer.widgetsTitle">添加组件</h3>
+    <button class="icon-btn" id="btnCloseWidgetDrawer" type="button" aria-label="Close">×</button>
+  </div>
+  <p class="muted drawer-hint" data-i18n="drawer.widgetsHint">点击添加，把组件拖到工作台任意位置。</p>
+  <div class="drawer-list" id="widgetDrawerList">
+    <div class="drawer-item"><span data-i18n="widget.kpiLeads">线索总数</span><button class="btn btn-ghost btn-sm widget-add-btn" type="button" data-add-widget="kpi-leads"><span data-i18n="btn.add">添加</span></button></div>
+    <div class="drawer-item"><span data-i18n="widget.kpiDeals">商机总额</span><button class="btn btn-ghost btn-sm widget-add-btn" type="button" data-add-widget="kpi-deals"><span data-i18n="btn.add">添加</span></button></div>
+    <div class="drawer-item"><span data-i18n="widget.kpiReceivable">应收账款</span><button class="btn btn-ghost btn-sm widget-add-btn" type="button" data-add-widget="kpi-receivable"><span data-i18n="btn.add">添加</span></button></div>
+    <div class="drawer-item"><span data-i18n="widget.kpiReceived">已收款</span><button class="btn btn-ghost btn-sm widget-add-btn" type="button" data-add-widget="kpi-received"><span data-i18n="btn.add">添加</span></button></div>
+    <div class="drawer-item"><span data-i18n="widget.aiBrief">AI 今日简报</span><button class="btn btn-ghost btn-sm widget-add-btn" type="button" data-add-widget="ai-brief"><span data-i18n="btn.add">添加</span></button></div>
+    <div class="drawer-item"><span data-i18n="widget.funnel">销售漏斗</span><button class="btn btn-ghost btn-sm widget-add-btn" type="button" data-add-widget="funnel"><span data-i18n="btn.add">添加</span></button></div>
+    <div class="drawer-item"><span data-i18n="widget.countryChart">线索国家分布</span><button class="btn btn-ghost btn-sm widget-add-btn" type="button" data-add-widget="country-chart"><span data-i18n="btn.add">添加</span></button></div>
+    <div class="drawer-item"><span data-i18n="widget.slaList">SLA 逾期提醒</span><button class="btn btn-ghost btn-sm widget-add-btn" type="button" data-add-widget="sla-list"><span data-i18n="btn.add">添加</span></button></div>
+    <div class="drawer-item"><span data-i18n="widget.todayTasks">今日待办</span><button class="btn btn-ghost btn-sm widget-add-btn" type="button" data-add-widget="today-tasks"><span data-i18n="btn.add">添加</span></button></div>
+    <div class="drawer-item"><span data-i18n="widget.recentOrders">最新订单</span><button class="btn btn-ghost btn-sm widget-add-btn" type="button" data-add-widget="recent-orders"><span data-i18n="btn.add">添加</span></button></div>
+    <div class="drawer-item"><span data-i18n="widget.unreadChat">未读消息</span><button class="btn btn-ghost btn-sm widget-add-btn" type="button" data-add-widget="unread-chat"><span data-i18n="btn.add">添加</span></button></div>
+  </div>
+</div>
+<div class="drawer-overlay" id="widgetDrawerOverlay" hidden></div>
+
+<!-- ============ Generic modal ============ -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+  <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-header">
+      <h2 id="modalTitle"></h2>
+      <button class="icon-btn" id="modalClose" type="button" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<!-- ============ Toasts ============ -->
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="/public/app.js"></script>
+</body>
+</html>
